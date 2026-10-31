@@ -4,7 +4,8 @@ A private home for your family's photos, videos and documents. Files are stored 
 
 ## How it works
 
-- The owner creates an account and connects their Google Drive (a `FamilyVault - <family name>` folder is created; the app only touches files it creates).
+- Anyone can create a family vault. They confirm their email with a 6-digit code (sent through Resend), then become that vault's owner. Each family's data is kept separate on one deployment.
+- The owner connects their Google Drive (a `FamilyVault - <family name>` folder is created; the app only touches files it creates).
 - The owner invites relatives by email. Members sign in with a **6-digit PIN**; the owner uses a password.
 - Uploads are streamed straight to Google Drive. Nothing is stored on the server's disk.
 - App data (members, folders, file records) lives in Postgres (Neon), or in `data/db.json` when no database is configured.
@@ -32,7 +33,7 @@ Set `APP_URL=http://localhost:5173` for local development.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth client (Web application) with the Drive API enabled |
 | `APP_URL` | Public URL of the app, no trailing slash |
 | `DATABASE_URL` | Neon connection string (optional locally; required in production) |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Email sending; `EMAIL_FROM` must use a domain verified in Resend |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Email sending; `EMAIL_FROM` must use a domain verified in Resend. **Required in production**: signup verification codes are sent this way, and signup is refused without it |
 | `SESSION_SECRET` | Signs sessions: `openssl rand -hex 32` |
 | `TRUST_PROXY` | Set to `1` behind a reverse proxy so rate limiting sees real IPs |
 | `MAX_UPLOAD_MB` | Per-file upload limit (default 2048) |
@@ -64,3 +65,7 @@ The production build is a single Node process that serves the API and the built 
 | `npm run build` | Build the frontend into `dist/` |
 | `npm start` | Run in production mode |
 | `npm run lint` | Type-check with `tsc` |
+
+## Tests
+
+`npm test` boots the server against a throwaway data directory (never your real database) and checks signup verification, family isolation, the single-family data migration and file-permission rules.

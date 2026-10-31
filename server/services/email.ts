@@ -32,3 +32,18 @@ export async function sendResetEmail(to: string, family: string, kind: 'password
   if (error) console.error('Resend error:', error.message);
   return !error;
 }
+
+export async function sendVerifyEmail(to: string, code: string): Promise<boolean> {
+  if (!resend) return false;
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'FamilyVault <onboarding@resend.dev>',
+    to,
+    subject: `${code} is your FamilyVault verification code`,
+    html: `<div style="font-family:sans-serif;max-width:480px"><h2>Verify your email</h2>
+      <p>Enter this code to finish creating your FamilyVault. It expires in 10 minutes.</p>
+      <p style="font-size:32px;letter-spacing:8px;font-weight:700;margin:16px 0">${esc(code)}</p>
+      <p style="color:#666;font-size:12px">If you didn't try to create a FamilyVault, ignore this email and nothing will happen.</p></div>`,
+  });
+  if (error) console.error('Resend error:', error.message);
+  return !error;
+}

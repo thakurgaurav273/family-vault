@@ -22,6 +22,7 @@ async function start() {
   api.use(sameOriginOnly);
   const authLimit = rateLimit('auth', 10, 15 * 60e3);
   api.use(['/auth/login', '/auth/register', '/auth/accept-invite', '/auth/reset', '/auth/change-secret'], authLimit);
+  api.use('/auth/register/start', rateLimit('register-start', 5, 60 * 60e3)); // each call can send an email
   api.use('/auth/forgot', rateLimit('forgot', 5, 60 * 60e3));
   api.use('/members', rateLimit('member-reset', 30, 60 * 60e3));
   api.use('/invites', rateLimit('invites', 30, 60 * 60e3));

@@ -80,3 +80,5 @@ export function decrypt(blob: string): string {
 }
 
 export const randomId = () => crypto.randomUUID();
+
+export const isEmail = (v: unknown): v is string => typeof v === 'string' && v.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);

@@ -44,6 +44,7 @@ export const PrivacyPage: React.FC = () => {
     >
       <Section id="introduction" n={1} title="Introduction">
         <p>FamilyVault is operated by <OperatorName />. Each FamilyVault workspace belongs to one family and is managed by a family member called the <strong>owner</strong>. The owner connects a Google Drive account, invites relatives, and decides who can upload, view and delete files.</p>
+        <p>FamilyVault hosts separate vaults for many families. Each family’s data is kept apart from every other family’s, and members of one vault cannot see another vault.</p>
         <p>Where this policy says “we”, it means the operator named above.</p>
       </Section>
 
@@ -52,6 +53,7 @@ export const PrivacyPage: React.FC = () => {
           head={['Category', 'What is stored']}
           rows={[
             ['Profile', 'Name, email address, role (owner, admin or member), relationship label, optional phone number, profile image link, join date and account status.'],
+            ['Sign-up verification', 'When you create a vault we email a 6-digit code to confirm the address is yours. Until you enter it, or for at most 10 minutes, we hold your name, email, a salted hash of your password and a hashed copy of the code. If it expires or is not used, it is deleted.'],
             ['Sign-in credentials', 'The owner’s password and each member’s 6-digit PIN are stored only as salted hashes (scrypt), never in readable form. We also keep counters of failed sign-in attempts to lock out guessing.'],
             ['Invitation and reset links', 'Single-use tokens that let a person accept an invitation or reset a PIN or password. They expire and are removed when used or replaced.'],
             ['Session', 'A signed, HTTP-only cookie (fv_session) that keeps you signed in for up to 30 days, or until you sign out of all devices.'],
@@ -144,6 +146,7 @@ export const PrivacyPage: React.FC = () => {
         <ul>
           <li>Invitation links expire after 7 days and password or PIN reset links after 30 minutes.</li>
           <li>Sign-in sessions last up to 30 days.</li>
+          <li>Unverified sign-ups expire after 10 minutes, and a code allows five attempts.</li>
           <li>Rate-limiting counters expire automatically when their time window ends.</li>
           <li>Retention of server logs and database backups depends on the hosting and database providers’ settings.</li>
         </ul>
@@ -167,7 +170,8 @@ export const PrivacyPage: React.FC = () => {
           <li>Sessions use signed, HTTP-only, same-site cookies, and can be revoked on all devices.</li>
           <li>Sign-in, invitation and reset requests are rate-limited, and repeated failed sign-ins are temporarily locked out.</li>
           <li>In production the application sends HTTP Strict Transport Security and Content Security Policy headers, and user-uploaded files are served with restrictions so they cannot run as web pages.</li>
-          <li>Access to a file is checked against its visibility setting on every request.</li>
+          <li>Access to a file is checked against its visibility setting on every request, and every request is limited to the signed-in person’s own family vault.</li>
+          <li>Owner email addresses are verified with an emailed code before a vault is created.</li>
         </ul>
         <p>No online service can be guaranteed completely secure. Anyone with administrative access to the server, database and secrets could technically access stored data, so access to those is limited to the operator. Please choose a PIN or password that others cannot guess and keep it private.</p>
       </Section>
