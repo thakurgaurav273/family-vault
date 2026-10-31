@@ -1,5 +1,24 @@
 import { FamilyWorkspace, User, UserRole } from '../types';
-import { INITIAL_WORKSPACE } from '../data/mockData';
+
+// Placeholder shown only until the server's workspace loads (e.g. on the sign-in page). Never persisted.
+const EMPTY_WORKSPACE: FamilyWorkspace = {
+  id: '',
+  name: 'FamilyVault',
+  tagline: 'Every memory. Every document. One family home.',
+  description: '',
+  avatar: '',
+  createdAt: '',
+  ownerId: '',
+  ownerName: '',
+  preferences: {
+    defaultVisibility: 'family',
+    uploadPermissions: 'all',
+    fileDeletionPermissions: 'owner_admin',
+    invitePermissions: 'admins',
+    language: 'English (US)',
+    timezone: 'UTC',
+  },
+};
 
 export interface IFamilyService {
   getWorkspace(): Promise<FamilyWorkspace>;
@@ -25,8 +44,7 @@ export class MockFamilyService implements IFamilyService {
         // Fallback
       }
     }
-    localStorage.setItem(STORAGE_KEY_WORKSPACE, JSON.stringify(INITIAL_WORKSPACE));
-    return INITIAL_WORKSPACE;
+    return EMPTY_WORKSPACE;
   }
 
   async updateWorkspace(updates: Partial<FamilyWorkspace>): Promise<FamilyWorkspace> {

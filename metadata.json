@@ -1,6 +1,0 @@
-{
-  "name": "FamilyVault",
-  "description": "Every memory. Every document. One family home. Private family cloud storage powered by Google Drive.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

@@ -4,22 +4,11 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
-!.env.example
 
+# Secrets and local database (root-level only, so src/data/ is still committed)
 .env
 .env.*
 !.env.example
-data/
-
-.env
-.env.*
-!.env.example
-data/
-
-.env
-.env.*
-!.env.example
-data/
+/data/
 
 BUGS.md
