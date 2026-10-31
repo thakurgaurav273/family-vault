@@ -5,7 +5,8 @@ export interface IAuthService {
   setCurrentUser(user: User): void;
   getAllMembers(): User[];
   login(email: string, password?: string): Promise<User>;
-  register(name: string, email: string, password?: string, familyName?: string): Promise<User>;
+  registerStart(name: string, email: string, password: string, familyName?: string): Promise<void>;
+  registerVerify(email: string, code: string): Promise<User>;
   acceptInvitation(inviteToken: string, name: string, password?: string): Promise<User>;
   updateProfile(userId: string, updates: Partial<User>): Promise<User>;
 }
@@ -66,8 +67,15 @@ export class MockAuthService implements IAuthService {
     return this.call('/api/auth/login', { email, password });
   }
 
-  register(name: string, email: string, password = '', familyName?: string): Promise<User> {
-    return this.call('/api/auth/register', { name, email, password, familyName });
+  // Creating a family is two steps: details -> emailed 6-digit code -> account created.
+  async registerStart(name: string, email: string, password: string, familyName?: string): Promise<void> {
+    const res = await fetch('/api/auth/register/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password, familyName }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Could not send the verification code');
+  }
+
+  registerVerify(email: string, code: string): Promise<User> {
+    return this.call('/api/auth/register/verify', { email, code });
   }
 
   acceptInvitation(token: string, name: string, password = ''): Promise<User> {

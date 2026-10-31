@@ -39,18 +39,33 @@ export const setSession = (res: Response, userId: string) =>
 export const AVATAR = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80';
 
 export type Member = { id: string; name: string; email: string; role: 'owner' | 'admin' | 'member'; avatar: string; joinedAt: string; status: 'active' | 'pending'; relationship?: string };
-declare module 'express-serve-static-core' { interface Request { user?: Member } }
-export const members = () => get<Member[]>(K.members, []);
-export const findByEmail = (e: string) => members().find((m) => m.email.toLowerCase() === e.toLowerCase());
+declare module 'express-serve-static-core' { interface Request { user?: Member; fid?: string } }
+export const members = (fid: string) => get<Member[]>(fid, K.members, []);
+// Emails and ids are unique across ALL families (one email = one family), so sign-in needs no family picker.
+export const findByEmail = (e: string): { m: Member; fid: string } | undefined => {
+  if (typeof e !== 'string') return undefined;
+  for (const fid of priv.families) {
+    const m = members(fid).find((x) => x.email.toLowerCase() === e.toLowerCase());
+    if (m) return { m, fid };
+  }
+};
+export const findById = (id: string): { m: Member; fid: string } | undefined => {
+  for (const fid of priv.families) {
+    const m = members(fid).find((x) => x.id === id);
+    if (m) return { m, fid };
+  }
+};
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const raw = readToken('session', cookie(req, 'fv_session')) || '';
   const cut = raw.lastIndexOf('.');
   const id = raw.slice(0, cut);
-  const user = members().find((m) => m.id === id && m.status === 'active');
+  const hit = findById(id);
+  const user = hit && hit.m.status === 'active' ? hit.m : undefined;
   if (user && Number(raw.slice(cut + 1)) !== (priv.sv[id] || 0)) return res.status(401).json({ error: 'Session expired' });
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   req.user = user;
+  req.fid = hit!.fid;
   next();
 }
 export const isAdmin = (u?: Member) => u?.role === 'owner' || u?.role === 'admin';

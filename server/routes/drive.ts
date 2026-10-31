@@ -27,43 +27,46 @@ router.get('/drive/callback', requireAuth, requireRole('owner'), wrap(async (req
     return res.redirect(`${back}drive=error`);
   const client = oauth();
   const { tokens } = await client.getToken(String(req.query.code));
-  const refreshToken = tokens.refresh_token || (priv.drive ? decrypt(priv.drive.refreshToken) : undefined);
+  const fid = req.fid!;
+  const refreshToken = tokens.refresh_token || (priv.drives[fid] ? decrypt(priv.drives[fid]!.refreshToken) : undefined);
   if (!refreshToken) return res.redirect(`${back}drive=error`);
   client.setCredentials(tokens);
   const info = (await google.oauth2({ version: 'v2', auth: client }).userinfo.get()).data;
   const drive = google.drive({ version: 'v3', auth: client });
-  const prevEmail = get<any>(K.drive, {}).accountEmail;
+  const prevEmail = get<any>(fid, K.drive, {}).accountEmail;
   const switched = !!prevEmail && !!info.email && prevEmail.toLowerCase() !== info.email.toLowerCase();
   if (switched) {
     // Active files always live in the connected account. Park the old account's files (they come back if it is
     // reconnected) and restore any parked for the new one. Sub-folder ids are per-account and recreated on upload.
     const key = (e: string) => e.toLowerCase();
-    priv.archive[key(prevEmail)] = [...(priv.archive[key(prevEmail)] || []), ...get<any[]>(K.files, [])];
-    set(K.files, priv.archive[key(info.email!)] || []);
-    delete priv.archive[key(info.email!)];
-    set(K.folders, get<any[]>(K.folders, []).map(({ driveFolderId: _drop, ...f }) => f));
+    const arch = (priv.archive[fid] ??= {});
+    arch[key(prevEmail)] = [...(arch[key(prevEmail)] || []), ...get<any[]>(fid, K.files, [])];
+    set(fid, K.files, arch[key(info.email!)] || []);
+    delete arch[key(info.email!)];
+    set(fid, K.folders, get<any[]>(fid, K.folders, []).map(({ driveFolderId: _drop, ...f }) => f));
   }
-  let folderId = priv.drive?.folderId;
+  let folderId = priv.drives[fid]?.folderId;
   if (!folderId) {
     folderId = (await drive.files.create({
-      requestBody: { name: `FamilyVault - ${get<any>(K.workspace, {}).name || 'Family'}`, mimeType: 'application/vnd.google-apps.folder' },
+      requestBody: { name: `FamilyVault - ${get<any>(fid, K.workspace, {}).name || 'Family'}`, mimeType: 'application/vnd.google-apps.folder' },
       fields: 'id',
     })).data.id!;
   }
-  priv.drive = { refreshToken: encrypt(refreshToken), folderId }; persist();
-  await refreshDriveStatus({ accountEmail: info.email, accountName: info.name, accountAvatar: info.picture });
+  priv.drives[fid] = { refreshToken: encrypt(refreshToken), folderId }; persist();
+  await refreshDriveStatus(fid, { accountEmail: info.email, accountName: info.name, accountAvatar: info.picture });
   res.redirect(`${back}drive=${switched ? 'switched' : 'connected'}`);
 }));
 
-router.get('/drive/status', requireAuth, wrap(async (_req, res) => {
-  res.json(priv.drive ? await refreshDriveStatus() : get(K.drive, { isConnected: false }));
+router.get('/drive/status', requireAuth, wrap(async (req, res) => {
+  res.json(priv.drives[req.fid!] ? await refreshDriveStatus(req.fid!) : get(req.fid!, K.drive, { isConnected: false }));
 }));
 
-router.post('/drive/disconnect', requireAuth, requireRole('owner'), wrap(async (_req, res) => {
-  if (priv.drive) {
-    try { await oauth().revokeToken(decrypt(priv.drive.refreshToken)); } catch { /* already revoked */ }
-    priv.drive = null; persist();
+router.post('/drive/disconnect', requireAuth, requireRole('owner'), wrap(async (req, res) => {
+  const fid = req.fid!;
+  if (priv.drives[fid]) {
+    try { await oauth().revokeToken(decrypt(priv.drives[fid]!.refreshToken)); } catch { /* already revoked */ }
+    priv.drives[fid] = null; persist();
   }
-  set(K.drive, { ...get<any>(K.drive, {}), isConnected: false, status: 'disconnected', storageUsedBytes: 0, storageTotalBytes: 0 });
-  res.json(get(K.drive, {}));
+  set(fid, K.drive, { ...get<any>(fid, K.drive, {}), isConnected: false, status: 'disconnected', storageUsedBytes: 0, storageTotalBytes: 0 });
+  res.json(get(fid, K.drive, {}));
 }));

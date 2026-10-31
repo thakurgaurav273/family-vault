@@ -5,27 +5,28 @@ import { decrypt } from '../security.ts';
 
 export const oauth = () =>
   new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, `${APP_URL}/api/drive/callback`);
-export function driveClient() {
-  if (!priv.drive) throw Object.assign(new Error('Google Drive is not connected. Ask the family owner to connect it.'), { status: 409 });
+export function driveClient(fid: string) {
+  const link = priv.drives[fid];
+  if (!link) throw Object.assign(new Error('Google Drive is not connected. Ask the family owner to connect it.'), { status: 409 });
   const auth = oauth();
-  auth.setCredentials({ refresh_token: decrypt(priv.drive.refreshToken) });
+  auth.setCredentials({ refresh_token: decrypt(link.refreshToken) });
   return google.drive({ version: 'v3', auth });
 }
-export async function refreshDriveStatus(extra: Record<string, unknown> = {}) {
-  const files = get<any[]>(K.files, []);
+export async function refreshDriveStatus(fid: string, extra: Record<string, unknown> = {}) {
+  const files = get<any[]>(fid, K.files, []);
   const sum = (t: string) => files.filter((f) => f.fileType === t).reduce((a, f) => a + f.size, 0);
   const breakdown = { photos: sum('photo'), videos: sum('video'), documents: sum('document'), other: 0 };
-  const prev = get<any>(K.drive, {});
+  const prev = get<any>(fid, K.drive, {});
   let quota = { storageUsedBytes: prev.storageUsedBytes || 0, storageTotalBytes: prev.storageTotalBytes || 0 };
   let status = 'healthy';
   try {
-    const about = (await driveClient().about.get({ fields: 'storageQuota' })).data.storageQuota;
+    const about = (await driveClient(fid).about.get({ fields: 'storageQuota' })).data.storageQuota;
     quota = {
       storageUsedBytes: Number(about?.usage || 0),
       storageTotalBytes: Number(about?.limit || 15 * 1024 ** 3),
     };
   } catch { status = 'warning'; }
   const conn = { ...prev, isConnected: true, status, lastSyncedAt: new Date().toISOString(), breakdown, ...quota, ...extra };
-  set(K.drive, conn);
+  set(fid, K.drive, conn);
   return conn;
 }

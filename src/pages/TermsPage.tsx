@@ -26,12 +26,12 @@ export const TermsPage: React.FC = () => {
       intro={<p>These terms describe how FamilyVault may be used. By signing in to or using FamilyVault you agree to them. They are a plain-language summary of the rules of the service and are not legal advice.</p>}
     >
       <Section id="purpose" n={1} title="Purpose of FamilyVault">
-        <p>FamilyVault is a private, invite-only application for one family to store, organize and preserve photos, videos and documents. It is operated by <OperatorName />. It is not a public sharing or social network.</p>
+        <p>FamilyVault is a private application where each family keeps its own vault to store, organize and preserve photos, videos and documents. Vaults are invite-only: the family’s owner decides who joins. It is operated by <OperatorName />. It is not a public sharing or social network.</p>
       </Section>
 
       <Section id="eligibility" n={2} title="Eligibility and Family Use">
         <ul>
-          <li>You may use FamilyVault only if you were invited by the family owner or an admin, or you are the owner who set up the vault.</li>
+          <li>You may use FamilyVault only if you were invited by a family’s owner or an admin, or you created the vault yourself with a verified email address.</li>
           <li>Use it for your own family’s legitimate, personal purposes. The owner decides who is invited, and what each person may upload, view and delete.</li>
           <li>Do not share your access with people the owner has not invited.</li>
         </ul>

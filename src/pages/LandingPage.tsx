@@ -15,7 +15,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { title: 'The owner creates the vault', text: 'One family member sets up the FamilyVault with an email and password.' },
+  { title: 'Create your family’s vault', text: 'Anyone can start a vault. Confirm your email with a 6-digit code, and you become its owner.' },
   { title: 'Connect Google Drive', text: 'The owner authorizes limited Google Drive access. FamilyVault creates its own folder there.' },
   { title: 'Invite family & upload', text: 'Relatives are invited by email and sign in with a 6-digit PIN. Anyone permitted can upload photos, videos and documents.' },
   { title: 'Find them whenever needed', text: 'Browse, search and download your preserved memories at any time.' },
@@ -120,8 +120,8 @@ export const LandingPage: React.FC = () => {
 
       {/* About */}
       <section id="about" aria-labelledby="about-h" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-16 text-center sm:px-6">
-        <h2 id="about-h" className="text-2xl font-bold tracking-tight sm:text-3xl">Built for one family at a time</h2>
-        <p className="mt-4 leading-relaxed text-slate-600">FamilyVault is a private family utility, not a public sharing network. Each vault belongs to a single family and is managed by its owner, who decides who is invited and what they can do.</p>
+        <h2 id="about-h" className="text-2xl font-bold tracking-tight sm:text-3xl">A separate vault for every family</h2>
+        <p className="mt-4 leading-relaxed text-slate-600">FamilyVault is a private family utility, not a public sharing network. Each vault belongs to a single family and is managed by its owner, who decides who is invited and what they can do. One family’s vault is kept separate from every other.</p>
         <div className="mt-8 flex justify-center"><PrimaryLink href={siteConfig.signInPath}>Access FamilyVault</PrimaryLink></div>
       </section>
     </PublicLayout>

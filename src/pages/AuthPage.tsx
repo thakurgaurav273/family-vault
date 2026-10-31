@@ -68,6 +68,11 @@ export const AuthPage: React.FC = () => {
   const [relationship, setRelationship] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
+  const [familyNameInput, setFamilyNameInput] = useState('');
+  const [codeStep, setCodeStep] = useState(false);
+  const [code, setCode] = useState('');
+
+  useEffect(() => { setError(''); }, [view, codeStep]); // don't carry an old error into another form
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,12 +94,23 @@ export const AuthPage: React.FC = () => {
       return;
     }
     try {
-      const user = await authService.register(name, email, password);
-      void user;
-      showToast('Account created successfully!', 'success');
-      window.location.assign('/');
+      await authService.registerStart(name, email, password, familyNameInput || undefined);
+      setCode('');
+      setCodeStep(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await authService.registerVerify(email, code);
+      showToast('Email verified. Your vault is ready!', 'success');
+      window.location.assign('/');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
     }
   };
 
@@ -272,6 +288,20 @@ export const AuthPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                  Family name <span className="font-normal text-neutral-400">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={familyNameInput}
+                  onChange={(e) => setFamilyNameInput(e.target.value)}
+                  placeholder="e.g. The Singh Family"
+                  className="w-full px-3 py-2 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
                   Email Address
                 </label>
                 <div className="relative">
@@ -281,7 +311,7 @@ export const AuthPage: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="thakurgaurav273@gmail.com"
+                    placeholder="you@example.com"
                     className="w-full pl-9 pr-3 py-2 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl"
                   />
                 </div>
@@ -357,7 +387,42 @@ export const AuthPage: React.FC = () => {
           )}
 
           {/* View: REGISTER */}
-          {view === 'register' && (
+          {view === 'register' && codeStep && (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div className="pb-1">
+                <h2 className="text-base font-bold text-neutral-900 dark:text-neutral-100">Check your email</h2>
+                <p className="text-xs text-neutral-500">
+                  We sent a 6-digit code to <strong>{email}</strong>. It expires in 10 minutes.
+                </p>
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                maxLength={6}
+                required
+                autoFocus
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="123456"
+                aria-label="6-digit verification code"
+                className="w-full px-3 py-3 text-center text-xl tracking-[0.5em] bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl"
+              />
+              {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+              <button type="submit" className="w-full py-2.5 px-4 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors">
+                Verify and create vault
+              </button>
+              <div className="text-center pt-2 text-xs text-neutral-500">
+                <span>Wrong email or no code? </span>
+                <button type="button" onClick={() => setCodeStep(false)} className="text-blue-600 hover:underline font-medium">
+                  Go back
+                </button>
+              </div>
+            </form>
+          )}
+
+          {view === 'register' && !codeStep && (
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="pb-1">
                 <h2 className="text-base font-bold text-neutral-900 dark:text-neutral-100">
@@ -396,7 +461,7 @@ export const AuthPage: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="thakurgaurav273@gmail.com"
+                    placeholder="you@example.com"
                     className="w-full pl-9 pr-3 py-2 text-xs bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl"
                   />
                 </div>
@@ -442,7 +507,7 @@ export const AuthPage: React.FC = () => {
                 type="submit"
                 className="w-full py-2.5 px-4 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2"
               >
-                <span>Continue to Setup Wizard</span>
+                <span>Send verification code</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 

@@ -13,10 +13,11 @@ const typeOf = (mime: string) => (mime.startsWith('image/') ? 'photo' : mime.sta
 
 // Streams each file straight from the request into Drive; nothing is buffered in memory or on disk.
 router.post('/files/upload', requireAuth, wrap(async (req, res) => {
-  const ws = get<any>(K.workspace, {});
+  const fid = req.fid!;
+  const ws = get<any>(fid, K.workspace, {});
   if (ws.preferences?.uploadPermissions === 'admins' && !isAdmin(req.user))
     return res.status(403).json({ error: 'Only admins can upload files.' });
-  const drive = driveClient();
+  const drive = driveClient(fid);
   const fields: Record<string, string> = {};
   const jobs: Promise<{ driveId: string; name: string; mime: string; size: number }>[] = [];
   const maxBytes = (Number(process.env.MAX_UPLOAD_MB) || 2048) * 1024 * 1024;
@@ -25,8 +26,8 @@ router.post('/files/upload', requireAuth, wrap(async (req, res) => {
   // Each FamilyVault folder maps to a subfolder of the vault's Drive folder, created on first use.
   const driveFolders = new Map<string, Promise<string>>();
   const parentFor = (appFolderId?: string): Promise<string> => {
-    const root = priv.drive!.folderId;
-    const folder = appFolderId ? get<any[]>(K.folders, []).find((x) => x.id === appFolderId) : null;
+    const root = priv.drives[fid]!.folderId;
+    const folder = appFolderId ? get<any[]>(fid, K.folders, []).find((x) => x.id === appFolderId) : null;
     if (!folder) return Promise.resolve(root);
     if (folder.driveFolderId) return Promise.resolve(folder.driveFolderId);
     if (!driveFolders.has(folder.id)) {
@@ -35,7 +36,7 @@ router.post('/files/upload', requireAuth, wrap(async (req, res) => {
         fields: 'id',
       }).then((r) => {
         const id = r.data.id!;
-        set(K.folders, get<any[]>(K.folders, []).map((x) => (x.id === folder.id ? { ...x, driveFolderId: id } : x)));
+        set(fid, K.folders, get<any[]>(fid, K.folders, []).map((x) => (x.id === folder.id ? { ...x, driveFolderId: id } : x)));
         return id;
       }));
     }
@@ -62,7 +63,7 @@ router.post('/files/upload', requireAuth, wrap(async (req, res) => {
   const VISIBILITIES = ['family', 'admins', 'private'];
   const category = CATEGORIES.includes(fields.category) ? fields.category : 'other';
   const visibility = VISIBILITIES.includes(fields.visibility) ? fields.visibility : ws.preferences?.defaultVisibility || 'family';
-  const folderId = (get<any[]>(K.folders, []).find((x) => x.id === fields.folderId) || {}).id || null;
+  const folderId = (get<any[]>(fid, K.folders, []).find((x) => x.id === fields.folderId) || {}).id || null;
   const created = (await Promise.all(jobs)).map((f) => {
     const id = `file-${crypto.randomUUID()}`;
     const ext = (f.name.split('.').pop() || 'FILE').toUpperCase();
@@ -74,15 +75,16 @@ router.post('/files/upload', requireAuth, wrap(async (req, res) => {
       isFavorite: false, tags: [category, ext], driveFileId: f.driveId,
     };
   });
-  set(K.files, [...created, ...get<any[]>(K.files, [])]);
+  set(fid, K.files, [...created, ...get<any[]>(fid, K.files, [])]);
   res.json(created);
 }));
 
 router.get('/files/:id/content', requireAuth, wrap(async (req, res) => {
-  const f = get<any[]>(K.files, []).find((x) => x.id === String(req.params.id));
+  const fid = req.fid!;
+  const f = get<any[]>(fid, K.files, []).find((x) => x.id === String(req.params.id));
   if (!f || !canSee(f, req.user!)) return res.status(404).json({ error: 'Not found' });
   const range = req.headers.range;
-  const r = await driveClient().files.get(
+  const r = await driveClient(fid).files.get(
     { fileId: f.driveFileId, alt: 'media' },
     { responseType: 'stream', headers: range ? { Range: range } : {} },
   );
