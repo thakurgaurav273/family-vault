@@ -20,6 +20,7 @@ import {
 import { EmptyState } from '../common/EmptyState';
 import { useFamilyVault } from '../../context/FamilyVaultContext';
 import { formatRelativeTime } from '../../utils/formatters';
+import { authService } from '../../services';
 
 export const TopNav: React.FC = () => {
   const location = useLocation();
@@ -277,14 +278,18 @@ export const TopNav: React.FC = () => {
                   <Sliders className="w-4 h-4 text-neutral-400" />
                   <span>Settings & Preferences</span>
                 </Link>
-                <Link
-                  to="/auth"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsProfileOpen(false);
+                    await authService.logout();
+                    window.location.assign('/auth');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-left"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Sign In / Switch</span>
-                </Link>
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}

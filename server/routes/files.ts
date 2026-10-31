@@ -25,11 +25,20 @@ router.post('/files/upload', requireAuth, wrap(async (req, res) => {
   bb.on('field', (n, v) => { fields[n] = v; });
   // Each FamilyVault folder maps to a subfolder of the vault's Drive folder, created on first use.
   const driveFolders = new Map<string, Promise<string>>();
-  const parentFor = (appFolderId?: string): Promise<string> => {
-    const root = priv.drives[fid]!.folderId;
+  const parentFor = async (appFolderId?: string): Promise<string> => {
+    let root = priv.drives[fid]?.folderId;
+    if (!root) {
+      const wsName = get<any>(fid, K.workspace, {}).name || 'Family';
+      const created = await drive.files.create({
+        requestBody: { name: `FamilyVault - ${wsName}`, mimeType: 'application/vnd.google-apps.folder' },
+        fields: 'id',
+      });
+      root = created.data.id!;
+      if (priv.drives[fid]) { priv.drives[fid]!.folderId = root; persist(); }
+    }
     const folder = appFolderId ? get<any[]>(fid, K.folders, []).find((x) => x.id === appFolderId) : null;
-    if (!folder) return Promise.resolve(root);
-    if (folder.driveFolderId) return Promise.resolve(folder.driveFolderId);
+    if (!folder) return root;
+    if (folder.driveFolderId) return folder.driveFolderId;
     if (!driveFolders.has(folder.id)) {
       driveFolders.set(folder.id, drive.files.create({
         requestBody: { name: String(folder.name).slice(0, 100), mimeType: 'application/vnd.google-apps.folder', parents: [root] },
@@ -50,12 +59,37 @@ router.post('/files/upload', requireAuth, wrap(async (req, res) => {
     const body = new PassThrough();
     stream.on('error', (e) => body.destroy(e));
     stream.pipe(body);
-    const job = parentFor(fields.folderId).then((parent) => drive.files.create({
-      requestBody: { name: info.filename, parents: [parent] },
-      media: { mimeType: info.mimeType, body },
-      fields: 'id',
-    })).then((r) => ({ driveId: r.data.id!, name: info.filename || 'file', mime: info.mimeType, size }));
-    job.catch(() => {});
+    const job = parentFor(fields.folderId)
+      .then((parent) =>
+        drive.files.create({
+          requestBody: { name: info.filename, parents: [parent] },
+          media: { mimeType: info.mimeType, body },
+          fields: 'id',
+        })
+      )
+      .then((r) => ({ driveId: r.data.id!, name: info.filename || 'file', mime: info.mimeType, size }))
+      .catch((err) => {
+        const msg =
+          err?.response?.data?.error_description ||
+          err?.response?.data?.error?.message ||
+          err?.message ||
+          'Google Drive upload failed';
+        const isAuth =
+          msg.includes('invalid_grant') ||
+          msg.includes('revoked') ||
+          err?.response?.status === 401 ||
+          err?.code === 401;
+        if (isAuth) {
+          throw Object.assign(
+            new Error('Google Drive authorization expired or revoked. Please reconnect Google Drive in Storage settings.'),
+            { status: 401 }
+          );
+        }
+        const status =
+          err?.response?.status ||
+          (typeof err?.code === 'number' && err.code >= 400 && err.code < 600 ? err.code : 500);
+        throw Object.assign(new Error(msg), { status });
+      });
     jobs.push(job);
   });
   await new Promise<void>((ok, bad) => { bb.on('close', ok); bb.on('error', bad); req.pipe(bb); });

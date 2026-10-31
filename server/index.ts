@@ -37,8 +37,17 @@ async function start() {
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err?.message || err);
-  const status = err?.status || 500;
-  res.status(status).json({ error: err?.status ? err.message : 'Server error' });
+  const status =
+    err?.status ||
+    (typeof err?.code === 'number' && err.code >= 400 && err.code < 600 ? err.code : undefined) ||
+    err?.response?.status ||
+    500;
+  const message =
+    err?.response?.data?.error_description ||
+    err?.response?.data?.error?.message ||
+    err?.message ||
+    'Server error';
+  res.status(status).json({ error: message });
 });
 
 if (IS_PROD) {
