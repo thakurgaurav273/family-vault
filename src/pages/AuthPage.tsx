@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link, Navigate } from 'react-router-dom';
 import {
   ShieldCheck,
   Mail,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useFamilyVault } from '../context/FamilyVaultContext';
 import { authService } from '../services';
+import { isSignedIn } from '../utils/session';
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,10 @@ export const AuthPage: React.FC = () => {
   const inviteToken = searchParams.get('invite') || '';
   const isInvite = searchParams.get('mode') === 'invite' || !!inviteToken;
   const resetToken = searchParams.get('reset') || '';
+
+  if (isSignedIn() && !isInvite && !resetToken) {
+    return <Navigate to="/" replace />;
+  }
   const [view, setView] = useState<'login' | 'register' | 'invite' | 'forgot' | 'reset'>(
     resetToken ? 'reset' : isInvite ? 'invite' : searchParams.get('mode') === 'register' ? 'register' : 'login'
   );

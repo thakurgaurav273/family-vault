@@ -28,6 +28,7 @@
     "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
     "resend": "^6.37.0",
+    "sharp": "^0.35.5",
     "vite": "^8.3.5"
   },
   "devDependencies": {
