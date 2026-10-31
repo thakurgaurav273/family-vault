@@ -8,8 +8,19 @@ export const oauth = () =>
 export function driveClient(fid: string) {
   const link = priv.drives[fid];
   if (!link) throw Object.assign(new Error('Google Drive is not connected. Ask the family owner to connect it.'), { status: 409 });
+  let token: string;
+  try {
+    token = decrypt(link.refreshToken);
+  } catch {
+    // Decryption fails when SESSION_SECRET changed since Drive was connected (e.g. Render regenerated it).
+    // The only fix is to reconnect Drive so a new token is encrypted with the current secret.
+    throw Object.assign(
+      new Error('Google Drive credentials could not be decrypted — the server encryption key has changed. Please disconnect and reconnect Google Drive in Storage settings.'),
+      { status: 409 },
+    );
+  }
   const auth = oauth();
-  auth.setCredentials({ refresh_token: decrypt(link.refreshToken) });
+  auth.setCredentials({ refresh_token: token });
   return google.drive({ version: 'v3', auth });
 }
 export async function refreshDriveStatus(fid: string, extra: Record<string, unknown> = {}) {
