@@ -1,0 +1,35 @@
+# Render Blueprint: one web service serves both the API (/api) and the built React app.
+# Render dashboard -> New -> Blueprint -> pick this repo. Secrets (sync: false) are asked for on first deploy.
+services:
+  - type: web
+    name: familyvault
+    runtime: node
+    plan: free # use "starter" to avoid sleeping when idle
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: MAX_UPLOAD_MB
+        value: "2048"
+      # Your service URL, e.g. https://familyvault.onrender.com (no trailing slash)
+      - key: APP_URL
+        sync: false
+      # Neon pooled connection string (sslmode=require)
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
